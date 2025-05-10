@@ -69,24 +69,32 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
+                  SizedBox(
                     height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.teal,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor:
-                          isOn ? (frequency / 100.0).clamp(0.0, 1.0) : 0.0,
-                      child: Container(
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Основная линия
+                        Container(
+                          width: double.infinity,
+                          height: 2,
+                          color: Colors.teal,
                         ),
-                      ),
+
+                        // Полоса частот
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor:
+                              isOn ? (frequency / 100.0).clamp(0.0, 1.0) : 0.0,
+                          child: Container(
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 74, 74, 74),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -120,7 +128,6 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: Container(
-                            margin: const EdgeInsets.only(right: 8),
                             decoration: BoxDecoration(
                               color: Colors.grey[300],
                               borderRadius: BorderRadius.circular(40),
@@ -138,12 +145,12 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                         ),
                       ),
 
+                      const SizedBox(width: 16),
                       // Поле ввода
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(40),
@@ -183,7 +190,7 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                           ),
                         ),
                       ),
-
+                      const SizedBox(width: 16),
                       // Кнопка отправки
                       Expanded(
                         child: AspectRatio(

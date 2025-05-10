@@ -116,69 +116,92 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                   Row(
                     children: [
                       // Поле показа частоты
-                      Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.teal, width: 2),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '$currentFrequency Гц',
-                          style: Theme.of(context).textTheme.titleMedium,
-                          textAlign: TextAlign.center,
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(40),
+                              border: Border.all(color: Colors.teal, width: 2),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$currentFrequency Гц',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleMedium?.copyWith(fontSize: 36),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 68),
 
-                      SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: TextField(
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          decoration: InputDecoration(
-                            labelText: 'Гц',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.teal,
-                                width: 100,
-                              ),
+                      // Поле ввода
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(40),
+                              border: Border.all(color: Colors.teal, width: 2),
                             ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Colors.teal,
-                                width: 2,
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12.0,
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return TextField(
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      style: TextStyle(
+                                        fontSize: constraints.maxWidth * 0.35,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Гц',
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                      onChanged: (value) {
+                                        final freq =
+                                            double.tryParse(value) ?? 0.0;
+                                        setFrequency(freq);
+                                      },
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                           ),
-                          onChanged: (value) {
-                            final freq = double.tryParse(value) ?? 0.0;
-                            setFrequency(freq);
-                          },
                         ),
                       ),
-                      const SizedBox(width: 38),
 
-                      // Кнопка
-                      SizedBox(
-                        width: 200,
-                        height: 200,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.all(50),
-                            backgroundColor: Colors.teal,
-                            shape: const CircleBorder(),
-                          ),
-                          child: const Icon(
-                            LucideIcons.send,
-                            color: Colors.white,
-                            size: 40,
+                      // Кнопка отправки
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: const Icon(
+                              LucideIcons.send,
+                              color: Colors.white,
+                              size: 40,
+                            ),
                           ),
                         ),
                       ),

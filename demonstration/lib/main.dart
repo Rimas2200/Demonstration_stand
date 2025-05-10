@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -33,21 +34,64 @@ class OilPumpScreen extends StatefulWidget {
   State<OilPumpScreen> createState() => _OilPumpScreenState();
 }
 
-class _OilPumpScreenState extends State<OilPumpScreen> {
+class _OilPumpScreenState extends State<OilPumpScreen>
+    with TickerProviderStateMixin {
   double frequency = 0.0;
   bool isOn = false;
-  String currentFrequency = '0.0';
+  String currentFrequency = '0';
+
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  final double baseWidthFactor = 0.5;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   void togglePower() {
     setState(() {
       isOn = !isOn;
+      if (isOn) {
+        final duration =
+            (5000 / (1 + math.tan(frequency.clamp(1.0, 100.0) / 20))).toInt();
+
+        _animationController.duration = Duration(milliseconds: duration);
+        _animationController.repeat(reverse: true);
+      } else {
+        _animationController.stop();
+      }
     });
   }
 
   void setFrequency(double value) {
     setState(() {
       frequency = value;
-      currentFrequency = value.toStringAsFixed(1);
+      currentFrequency =
+          value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
+
+      // Скорость анимации
+      if (isOn) {
+        final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
+        _animationController.duration = Duration(milliseconds: duration);
+        _animationController.repeat(reverse: true);
+      }
     });
   }
 
@@ -69,6 +113,7 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  // Анимированная шкала с изменением ширины
                   SizedBox(
                     height: 60,
                     child: Stack(
@@ -80,12 +125,29 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                           height: 2,
                           color: Colors.teal,
                         ),
+                        // Анимированная полоса
+                        AnimatedBuilder(
+                          animation: _animationController,
+                          builder: (context, child) {
+                            if (!isOn) {
+                              return FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: 0.0,
+                                child: child!,
+                              );
+                            }
 
-                        // Полоса частот
-                        FractionallySizedBox(
-                          alignment: Alignment.centerLeft,
-                          widthFactor:
-                              isOn ? (frequency / 100.0).clamp(0.0, 1.0) : 0.0,
+                            // ignore: unused_local_variable
+                            final factor = (frequency / 100.0).clamp(0.0, 1.0);
+                            final widthFactor =
+                                baseWidthFactor +
+                                (_animation.value * (1.0 - baseWidthFactor));
+                            return FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: widthFactor,
+                              child: child,
+                            );
+                          },
                           child: Container(
                             height: 60,
                             decoration: BoxDecoration(
@@ -127,24 +189,32 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[300],
-                              borderRadius: BorderRadius.circular(40),
-                              border: Border.all(color: Colors.teal, width: 2),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '$currentFrequency Гц',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.titleMedium?.copyWith(fontSize: 36),
-                              textAlign: TextAlign.center,
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final fontSize = constraints.maxWidth * 0.35;
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(40),
+                                  border: Border.all(
+                                    color: Colors.teal,
+                                    width: 2,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  '$currentFrequency Гц',
+                                  style: TextStyle(
+                                    fontSize: fontSize,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 16),
                       // Поле ввода
                       Expanded(
@@ -195,20 +265,25 @@ class _OilPumpScreenState extends State<OilPumpScreen> {
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
-                          child: ElevatedButton(
-                            onPressed: () {},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(40),
-                              ),
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Icon(
-                              LucideIcons.send,
-                              color: Colors.white,
-                              size: 40,
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final iconSize = constraints.maxWidth * 0.35;
+                              return ElevatedButton(
+                                onPressed: () {},
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(40),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                child: Icon(
+                                  LucideIcons.send,
+                                  color: Colors.white,
+                                  size: iconSize,
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ),

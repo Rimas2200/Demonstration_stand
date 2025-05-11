@@ -54,7 +54,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   @override
   void initState() {
     super.initState();
-
+    print('Initial state: $isConnected');
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
@@ -76,9 +76,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
 
   void connectToController() {
     try {
-      channel = WebSocketChannel.connect(
-        Uri.parse('ws://'),
-      ); // Пупупу, нужно что-то придумать
+      print('Connecting to ws://192.168.4.1:81...');
+      channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:81'));
+      print('Connection established.');
       setState(() {
         isConnected = true;
       });
@@ -88,25 +88,24 @@ class _OilPumpScreenState extends State<OilPumpScreen>
           final newFrequency = double.tryParse(message) ?? 0.0;
           setFrequency(newFrequency);
         },
-
         onError: (error) {
+          print('Connection error: $error');
           setState(() {
             isConnected = false;
           });
-          print('Connection error: $error');
         },
         onDone: () {
+          print('Connection closed.');
           setState(() {
             isConnected = false;
           });
-          print('Connection closed');
         },
       );
     } catch (e) {
+      print('Exception during connection: $e');
       setState(() {
         isConnected = false;
       });
-      print('Connection exception: $e');
     }
   }
 
@@ -240,18 +239,18 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           ),
                         ),
                         SizedBox(height: 30),
-                        // Индикатор подключения, пусть пока тут
-                        Padding(
-                          padding: const EdgeInsets.only(right: 12.0),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isConnected ? Colors.green : Colors.red,
-                            ),
-                          ),
-                        ),
+                        // передумал
+                        // Padding(
+                        //   padding: const EdgeInsets.only(right: 12.0),
+                        //   child: Container(
+                        //     width: 32,
+                        //     height: 32,
+                        //     decoration: BoxDecoration(
+                        //       shape: BoxShape.circle,
+                        //       color: isConnected ? Colors.green : Colors.red,
+                        //     ),
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
@@ -365,10 +364,89 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Питание'),
-                    value: isOn,
-                    onChanged: (value) => togglePower(),
+                  Card(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Управление питанием и подключением контроллера',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Divider(),
+                          SwitchListTile(
+                            title: const Text(
+                              'Питание',
+                              style: TextStyle(fontSize: 30),
+                            ),
+                            value: isOn,
+                            onChanged: (value) => togglePower(),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(left: 16.0),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      isConnected
+                                          ? 'Статус подключения: подключено'
+                                          : 'Статус подключения: не подключено',
+                                      style: const TextStyle(fontSize: 30),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // Нужен ли?
+                                    // Container(
+                                    //   width: 32,
+                                    //   height: 32,
+                                    //   decoration: BoxDecoration(
+                                    //     shape: BoxShape.circle,
+                                    //     color:
+                                    //         isConnected
+                                    //             ? Colors.green
+                                    //             : Colors.red,
+                                    //   ),
+                                    // ),
+                                  ],
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                onPressed: connectToController,
+                                // icon: const Icon(Icons.link_rounded, size: 14),
+                                label: Text(
+                                  'Подключиться',
+                                  style: const TextStyle(fontSize: 30),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[300],
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 20,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  elevation: 1,
+                                  textStyle: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

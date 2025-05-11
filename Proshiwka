@@ -1,4 +1,4 @@
-#include<Arduino.h>
+#include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsServer.h>
 
@@ -7,13 +7,13 @@ const char* ssid = "ESP32-Access-Point";
 const char* password = "12345678";
 
 // PWM-параметры
-const int pwmPin = 18; // Любой PWM-совместимый пин
-int freq = 1000;       // Частота по умолчанию
+const int pwmPin = 18;
+int freq = 1000;
 const int ledChannel = 0;
-const int resolution = 8; // 8 бит (0–255)
+const int resolution = 8;
 
-WebServer server(80);
-WebSocket ws("/ws");
+// WebSocket сервер
+WebSocketsServer ws = WebSocketsServer(81);
 
 void setup() {
   Serial.begin(115200);
@@ -30,11 +30,46 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
 
-void initWebSocket(){
+  // Инициализация WebSocket
+  initWebSocket();
+}
+
+void initWebSocket() {
   ws.onEvent(onEvent);
-  server.addHandler(&ws);
+  ws.begin();
+}
+
+void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+  switch (type) {
+    case WStype_CONNECTED:
+      Serial.printf("Client %d connected\n", num);
+      ws.sendTXT(num, String(freq));
+      break;
+      
+    case WStype_DISCONNECTED:
+      Serial.printf("Client %d disconnected\n", num);
+      break;
+      
+    case WStype_TEXT:
+      String message = String((char*)payload);
+      Serial.printf("Received from %d: %s\n", num, message.c_str());
+      
+      // Изменение частоты
+      if (message.startsWith("SET_FREQ:")) {
+        int newFreq = message.substring(9).toInt();
+        freq = newFreq;
+        ledcWriteTone(ledChannel, freq);
+        Serial.printf("Frequency set to: %d Hz\n", freq);
+        // Подтверждаем изменение частоты
+        ws.sendTXT(num, String(freq));
+      }
+      break;
+      
+    default:
+      break;
+  }
 }
 
 void loop() {
-  server.handleClient();
+  ws.loop();
 }

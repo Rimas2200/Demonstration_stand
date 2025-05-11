@@ -4,8 +4,17 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:logger/logger.dart';
+import 'package:flutter/services.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeRight,
+    DeviceOrientation.landscapeLeft,
+  ]).then((_) {
+    runApp(const MyApp());
+  });
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -167,7 +176,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(46.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -177,7 +186,10 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                 children: [
                   Expanded(
                     child: Center(
-                      child: Image.asset('1.png', fit: BoxFit.cover),
+                      // Для десктопа
+                      // child: Image.asset('1.png', fit: BoxFit.cover),
+                      // Для мобилок
+                      child: Image.asset('assets/1.png', fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -269,7 +281,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
                       // Поле показа частоты
@@ -278,7 +290,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           aspectRatio: 1,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final fontSize = constraints.maxWidth * 0.35;
+                              final fontSize = (constraints.maxWidth * 0.35)
+                                  .clamp(20.0, 48.0);
+
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey[300],
@@ -289,43 +303,53 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                   ),
                                 ),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  '$currentFrequency Гц',
-                                  style: TextStyle(
-                                    fontSize: fontSize,
-                                    fontWeight: FontWeight.bold,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '$currentFrequency Гц',
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                  textAlign: TextAlign.center,
                                 ),
                               );
                             },
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: MediaQuery.of(context).size.width * 0.02),
+
                       // Поле ввода
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(40),
-                              border: Border.all(color: Colors.teal, width: 2),
-                            ),
-                            child: Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12.0,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final fontSize = (constraints.maxWidth * 0.35)
+                                  .clamp(20.0, 48.0);
+
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(40),
+                                  border: Border.all(
+                                    color: Colors.teal,
+                                    width: 2,
+                                  ),
                                 ),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    return TextField(
+                                child: Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: fontSize * 0.3,
+                                    ),
+                                    child: TextField(
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
                                       maxLines: 1,
                                       style: TextStyle(
-                                        fontSize: constraints.maxWidth * 0.35,
+                                        fontSize: fontSize,
                                         fontWeight: FontWeight.bold,
                                       ),
                                       decoration: InputDecoration(
@@ -339,26 +363,27 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                             double.tryParse(value) ?? 0.0;
                                         setFrequency(freq);
                                       },
-                                    );
-                                  },
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: MediaQuery.of(context).size.width * 0.02),
+
                       // Кнопка отправки
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final iconSize = constraints.maxWidth * 0.35;
+                              final iconSize = (constraints.maxWidth * 0.35)
+                                  .clamp(20.0, 48.0);
+
                               return ElevatedButton(
-                                onPressed: () {
-                                  sendFrequency();
-                                },
+                                onPressed: sendFrequency,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.teal,
                                   shape: RoundedRectangleBorder(
@@ -378,90 +403,102 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Управление питанием и подключением контроллера',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  const SizedBox(height: 2),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double baseFontSize =
+                          constraints.maxWidth * 0.035; // ~5% ширины экрана
+                      final double buttonFontSize = constraints.maxWidth * 0.02;
+                      final double paddingValue = constraints.maxWidth * 0.02;
+
+                      return Card(
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            baseFontSize * 0.6,
                           ),
-                          const Divider(),
-                          SwitchListTile(
-                            title: const Text(
-                              'Питание',
-                              style: TextStyle(fontSize: 30),
-                            ),
-                            value: isOn,
-                            onChanged: (value) => togglePower(),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.all(paddingValue),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 16.0),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      isConnected
-                                          ? 'Статус: подключено'
-                                          : 'Статус: не подключено',
-                                      style: const TextStyle(fontSize: 30),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Нужен ли?
-                                    // Container(
-                                    //   width: 32,
-                                    //   height: 32,
-                                    //   decoration: BoxDecoration(
-                                    //     shape: BoxShape.circle,
-                                    //     color:
-                                    //         isConnected
-                                    //             ? Colors.green
-                                    //             : Colors.red,
-                                    //   ),
-                                    // ),
-                                  ],
+                              // Опционально под мобилки, не уверен, что все войдет
+                              // Text(
+                              //   'Управление питанием и подключением контроллера',
+                              //   style: TextStyle(
+                              //     fontSize: baseFontSize * 1.2,
+                              //     fontWeight: FontWeight.bold,
+                              //   ),
+                              // ),
+                              // const Divider(),
+                              SwitchListTile(
+                                title: Text(
+                                  'Питание',
+                                  style: TextStyle(fontSize: baseFontSize),
                                 ),
+                                value: isOn,
+                                onChanged: (value) => togglePower(),
                               ),
-                              ElevatedButton.icon(
-                                onPressed: connectToController,
-                                // icon: const Icon(Icons.link_rounded, size: 14),
-                                label: Text(
-                                  'Подключиться',
-                                  style: const TextStyle(fontSize: 30),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[300],
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 20,
+                              SizedBox(height: paddingValue * 0.1),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                      left: paddingValue,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          isConnected
+                                              ? 'Статус: подключено'
+                                              : 'Статус: не подключено',
+                                          style: TextStyle(
+                                            fontSize: baseFontSize,
+                                          ),
+                                        ),
+                                        SizedBox(width: paddingValue * 0.1),
+                                      ],
+                                    ),
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
+                                  ElevatedButton.icon(
+                                    onPressed: connectToController,
+                                    // icon: Icon(
+                                    //   Icons.link_rounded,
+                                    //   size: baseFontSize * 0.7,
+                                    // ),
+                                    label: Text(
+                                      'Подключиться',
+                                      style: TextStyle(
+                                        fontSize: buttonFontSize,
+                                      ),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[300],
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: paddingValue,
+                                        vertical: paddingValue * 0.2,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          baseFontSize * 0.5,
+                                        ),
+                                      ),
+                                      elevation: 1,
+                                    ),
                                   ),
-                                  elevation: 1,
-                                  textStyle: const TextStyle(fontSize: 12),
-                                ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -76,15 +76,27 @@ class _OilPumpScreenState extends State<OilPumpScreen>
 
   void connectToController() {
     try {
-      print('Connecting to ws://192.168.4.1:81...');
-      channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:81'));
-      print('Connection established.');
+      if (isConnected) {
+        print('Closing previous connection...');
+        channel.sink.close(status.goingAway);
+      }
+
+      print('Connecting to ws://192.168.4.1:80...');
+      channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
+
       setState(() {
-        isConnected = true;
+        isConnected = false;
       });
 
       channel.stream.listen(
         (message) {
+          if (!isConnected) {
+            print('Connection established.');
+            setState(() {
+              isConnected = true;
+            });
+          }
+
           final newFrequency = double.tryParse(message) ?? 0.0;
           setFrequency(newFrequency);
         },
@@ -100,6 +112,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
             isConnected = false;
           });
         },
+        cancelOnError: true,
       );
     } catch (e) {
       print('Exception during connection: $e');
@@ -402,8 +415,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                   children: [
                                     Text(
                                       isConnected
-                                          ? 'Статус подключения: подключено'
-                                          : 'Статус подключения: не подключено',
+                                          ? 'Статус: подключено'
+                                          : 'Статус: не подключено',
                                       style: const TextStyle(fontSize: 30),
                                     ),
                                     const SizedBox(width: 8),

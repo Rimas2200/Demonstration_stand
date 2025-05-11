@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'dart:convert'; // Нужен ли?
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 void main() => runApp(const MyApp());
 
@@ -36,6 +39,9 @@ class OilPumpScreen extends StatefulWidget {
 
 class _OilPumpScreenState extends State<OilPumpScreen>
     with TickerProviderStateMixin {
+  late WebSocketChannel channel;
+  bool isConnected = false;
+
   double frequency = 0.0;
   bool isOn = false;
   String currentFrequency = '0';
@@ -57,11 +63,59 @@ class _OilPumpScreenState extends State<OilPumpScreen>
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.linear),
     );
+
+    // Подключение к контроллеру
+    connectToController();
+  }
+
+  void sendFrequency() {
+    if (isConnected) {
+      channel.sink.add('SET_FREQ:$frequency');
+    }
+  }
+
+  void connectToController() {
+    try {
+      channel = WebSocketChannel.connect(
+        Uri.parse('ws://'),
+      ); // Пупупу, нужно что-то придумать
+      setState(() {
+        isConnected = true;
+      });
+
+      channel.stream.listen(
+        (message) {
+          final newFrequency = double.tryParse(message) ?? 0.0;
+          setFrequency(newFrequency);
+        },
+
+        onError: (error) {
+          setState(() {
+            isConnected = false;
+          });
+          print('Connection error: $error');
+        },
+        onDone: () {
+          setState(() {
+            isConnected = false;
+          });
+          print('Connection closed');
+        },
+      );
+    } catch (e) {
+      setState(() {
+        isConnected = false;
+      });
+      print('Connection exception: $e');
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    if (isConnected) {
+      channel.sink.close(status.goingAway);
+    }
     super.dispose();
   }
 
@@ -85,7 +139,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       frequency = value;
       currentFrequency =
           value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
-
+      sendFrequency();
       // Скорость анимации
       if (isOn) {
         final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
@@ -269,7 +323,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             builder: (context, constraints) {
                               final iconSize = constraints.maxWidth * 0.35;
                               return ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  sendFrequency();
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.teal,
                                   shape: RoundedRectangleBorder(

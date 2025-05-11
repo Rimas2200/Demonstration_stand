@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'dart:convert'; // Нужен ли?
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
+import 'package:logger/logger.dart';
 
 void main() => runApp(const MyApp());
 
@@ -46,6 +46,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   bool isOn = false;
   String currentFrequency = '0';
 
+  var logger = Logger();
+
   late AnimationController _animationController;
   late Animation<double> _animation;
 
@@ -54,7 +56,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   @override
   void initState() {
     super.initState();
-    print('Initial state: $isConnected');
+    logger.i('Initial state: $isConnected');
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
@@ -77,11 +79,11 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   void connectToController() {
     try {
       if (isConnected) {
-        print('Closing previous connection...');
+        logger.i('Closing previous connection...');
         channel.sink.close(status.goingAway);
       }
 
-      print('Connecting to ws://192.168.4.1:80...');
+      logger.i('Connecting to ws://192.168.4.1:80...');
       channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
 
       setState(() {
@@ -91,7 +93,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       channel.stream.listen(
         (message) {
           if (!isConnected) {
-            print('Connection established.');
+            logger.i('Connection established.');
             setState(() {
               isConnected = true;
             });
@@ -101,13 +103,13 @@ class _OilPumpScreenState extends State<OilPumpScreen>
           setFrequency(newFrequency);
         },
         onError: (error) {
-          print('Connection error: $error');
+          logger.e('Connection error: $error');
           setState(() {
             isConnected = false;
           });
         },
         onDone: () {
-          print('Connection closed.');
+          logger.i('Connection closed.');
           setState(() {
             isConnected = false;
           });
@@ -115,7 +117,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         cancelOnError: true,
       );
     } catch (e) {
-      print('Exception during connection: $e');
+      logger.e('Exception during connection: $e');
       setState(() {
         isConnected = false;
       });
@@ -151,7 +153,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       frequency = value;
       currentFrequency =
           value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
-      sendFrequency();
+      // sendFrequency();
       // Скорость анимации
       if (isOn) {
         final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();

@@ -1,0 +1,39 @@
+#include <WiFi.h>
+#include <WebServer.h>
+
+// Настройки WiFi
+const char* ssid = "ESP32-Access-Point";
+const char* password = "12345678";
+
+// PWM-параметры
+const int pwmPin = 18; // Любой PWM-совместимый пин
+int freq = 1000;       // Частота по умолчанию
+const int ledChannel = 0;
+const int resolution = 8; // 8 бит (0–255)
+
+WebServer server(80);
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(pwmPin, OUTPUT);
+
+  // Настройка PWM
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(pwmPin, ledChannel);
+  ledcWrite(ledChannel, 127); // 50% duty cycle
+
+  // Настройка WiFi в режиме точки доступа
+  WiFi.softAP(ssid, password);
+  Serial.println("Access Point started");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.softAPIP());
+
+  // Обработка HTTP-запросов
+  server.on("/", handleRoot);
+  server.on("/set", handleSetFrequency);
+  server.begin();
+}
+
+void loop() {
+  server.handleClient();
+}

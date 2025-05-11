@@ -1,3 +1,4 @@
+#include<Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsServer.h>
 
@@ -12,6 +13,7 @@ const int ledChannel = 0;
 const int resolution = 8; // 8 бит (0–255)
 
 WebServer server(80);
+WebSocket ws("/ws");
 
 void setup() {
   Serial.begin(115200);
@@ -28,10 +30,9 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());
 
-  // Обработка HTTP-запросов
-  server.on("/", handleRoot);
-  server.on("/set", handleSetFrequency);
-  server.begin();
+void initWebSocket(){
+  ws.onEvent(onEvent);
+  server.addHandler(&ws);
 }
 
 void loop() {

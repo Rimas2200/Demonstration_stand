@@ -228,12 +228,31 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       color: Colors.teal,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      'ЧелГУ/Нефт.сервис',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleMedium!.copyWith(color: Colors.white),
-                      textAlign: TextAlign.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'ЧелГУ/Нефт.сервис',
+                            style: Theme.of(context).textTheme.titleMedium!
+                                .copyWith(color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        SizedBox(height: 30),
+                        // Индикатор подключения, пусть пока тут
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isConnected ? Colors.green : Colors.red,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 26),

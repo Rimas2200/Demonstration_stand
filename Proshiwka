@@ -1,75 +1,88 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WebSocketsServer.h>
+#include <ESPAsyncWebServer.h>
 
-// Настройки WiFi
+// Настройка WiFi
 const char* ssid = "ESP32-Access-Point";
 const char* password = "12345678";
 
-// PWM-параметры
-const int pwmPin = 18;
-int freq = 1000;
-const int ledChannel = 0;
-const int resolution = 8;
+// WebSocket
+WebSocketsServer ws = WebSocketsServer(80);
 
-// WebSocket сервер
-WebSocketsServer ws = WebSocketsServer(81);
+// HTTP
+AsyncWebServer server(81);
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(pwmPin, OUTPUT);
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Client</h1>
+    <p>Connecting to ESP32...</p>
+    <script>
+        const ws = new WebSocket('ws://192.168.4.1:80');
 
-  // Настройка PWM
-  ledcSetup(ledChannel, freq, resolution);
-  ledcAttachPin(pwmPin, ledChannel);
-  ledcWrite(ledChannel, 127); // 50% duty cycle
+        ws.onopen = function() {
+            console.log('Connected to ESP32 WebSocket server');
+            ws.send('Hello from browser!');
+        };
 
-  // Настройка WiFi в режиме точки доступа
-  WiFi.softAP(ssid, password);
-  Serial.println("Access Point started");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.softAPIP());
+        ws.onmessage = function(event) {
+            console.log('Received:', event.data);
+            document.body.innerHTML += '<p>Received: ' + event.data + '</p>';
+        };
 
-  // Инициализация WebSocket
-  initWebSocket();
-}
+        ws.onclose = function() {
+            console.log('Connection closed');
+            document.body.innerHTML += '<p>Connection closed</p>';
+        };
+    </script>
+</body>
+</html>
+)rawliteral";
 
-void initWebSocket() {
-  ws.onEvent(onEvent);
-  ws.begin();
-}
-
+// Обработчик WebSocket
 void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
       Serial.printf("Client %d connected\n", num);
-      ws.sendTXT(num, String(freq));
       break;
-      
     case WStype_DISCONNECTED:
       Serial.printf("Client %d disconnected\n", num);
       break;
-      
     case WStype_TEXT:
-      String message = String((char*)payload);
-      Serial.printf("Received from %d: %s\n", num, message.c_str());
-      
-      // Изменение частоты
-      if (message.startsWith("SET_FREQ:")) {
-        int newFreq = message.substring(9).toInt();
-        freq = newFreq;
-        ledcWriteTone(ledChannel, freq);
-        Serial.printf("Frequency set to: %d Hz\n", freq);
-        // Подтверждаем изменение частоты
-        ws.sendTXT(num, String(freq));
-      }
+      Serial.printf("Received from %d: %s\n", num, payload);
+      ws.sendTXT(num, (char*)payload); // Эхо-ответ
       break;
-      
     default:
       break;
   }
 }
-initWebSocket();
+
+void setup() {
+  Serial.begin(115200);
+
+  // Точка доступа
+  WiFi.softAP(ssid, password);
+  Serial.println("Access Point started");
+  Serial.print("IP: ");
+  Serial.println(WiFi.softAPIP());
+
+  // Настройка WebSocket
+  ws.onEvent(onEvent);
+  ws.begin();
+
+  // Настройка HTTP
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html);
+  });
+
+  server.begin();
+  Serial.println("HTTP server started on port 81");
+}
 
 void loop() {
   ws.loop();

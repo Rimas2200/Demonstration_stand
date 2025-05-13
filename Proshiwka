@@ -3,14 +3,14 @@
 #include <WebSocketsServer.h>
 #include <ESPAsyncWebServer.h>
 
-// Настройки WiFi
+// Настройка WiFi
 const char* ssid = "ESP32-Access-Point";
 const char* password = "12345678";
 
-// WebSocket сервер
+// WebSocket
 WebSocketsServer ws = WebSocketsServer(80);
 
-// HTTP сервер
+// HTTP
 AsyncWebServer server(81);
 
 // HTML
@@ -45,55 +45,53 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
+// Счётчик подключенных клиентов
+int clientCount = 0;
+
 // Обработчик WebSocket
 void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
     case WStype_CONNECTED:
+      clientCount++;
       Serial.printf("[INFO] Client %d connected\n", num);
-      Serial.printf("[INFO] Total connected clients: %d\n", ws.connectedClients());
+      Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
       break;
-
+      
     case WStype_DISCONNECTED:
+      clientCount--;
       Serial.printf("[INFO] Client %d disconnected\n", num);
-      Serial.printf("[INFO] Total connected clients: %d\n", ws.connectedClients());
+      Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
       break;
+      
+    case WStype_TEXT: {
+      String message = (char*)payload;
+      Serial.printf("[INFO] Received from client %d: %s\n", num, message.c_str());
 
-    case WStype_TEXT:
-      {
-        String message = String((char*)payload);
-        Serial.printf("[INFO] Received from client %d: %s\n", num, message.c_str());
+      // Проверка на "SET_FREQ:"
+      if (message.startsWith("SET_FREQ:")) {
+        String freqValue = message.substring(9);
+        Serial.printf("[INFO] New frequency: %s Hz\n", freqValue.c_str());
 
-        if (message.startsWith("SET_FREQ:")) {
-          String freqValue = message.substring(9);
-          Serial.printf("[INFO] Set frequency to: %s Hz\n", freqValue.c_str());
-        }
-
-        // Отправка подтверждения
-        ws.sendTXT(num, "[INFO] Frequency received");
+        // Подтверждение на клиента
+        String response = "Frequency set to " + freqValue + " Hz";
+        ws.sendTXT(num, response);
+      } else {
+        Serial.println("[WARN] Unknown message format");
       }
       break;
-
-    case WStype_ERROR:
-      Serial.printf("[ERROR] Error from client %d\n", num);
-      break;
-
-    case WStype_PING:
-      Serial.printf("[INFO] Ping received from client %d\n", num);
-      break;
+    }
 
     case WStype_PONG:
       Serial.printf("[INFO] Pong received from client %d\n", num);
       break;
-
+      
     default:
-      Serial.printf("[WARN] Unknown event type %d from client %d\n", type, num);
       break;
   }
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("[INFO] Initializing...");
 
   // Запуск точки доступа
   WiFi.softAP(ssid, password);
@@ -104,12 +102,10 @@ void setup() {
   // Настройка WebSocket
   ws.onEvent(onEvent);
   ws.begin();
-  Serial.println("[INFO] WebSocket server started on port 80");
 
-  // Настройка HTTP сервера
+  // Настройка HTTP
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html);
-    Serial.printf("[INFO] HTTP client %s requested main page\n", request->client()->remoteIP().toString().c_str());
   });
 
   server.begin();

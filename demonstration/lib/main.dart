@@ -162,74 +162,77 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   }
 
   void connectToController(BuildContext context) async {
+    // Проверка на подключение в процессе
+    if (isConnecting) {
+      logger.i('Подключение уже в процессе...');
+      return;
+    }
+
+    setState(() {
+      isConnecting = true;
+    });
+
     try {
       if (isConnected) {
         logger.i('Закрытие предыдущего соединения...');
-        channel.sink.close(status.goingAway);
+        await channel.sink.close(status.goingAway);
         showSnackBar(context, 'Закрытие старого соединения');
       }
 
       logger.i('Подключение к ws://192.168.4.1:80...');
-
       final socket = await Socket.connect(
         '192.168.4.1',
         80,
         timeout: Duration(seconds: 5),
       );
-      socket.destroy(); // Закрываем соединение сразу после проверки
+      socket.destroy(); // Закрываем соединение
       logger.i('Сервер доступен, продолжаем подключение.');
 
       // Инициализация канала с WebSocket
-      try {
-        channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
-        logger.i('Канал WebSocket успешно подключен.');
+      channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
+      logger.i('Канал WebSocket успешно подключен.');
 
-        setState(() {
-          isConnected = true; // Подключение успешно
-        });
+      setState(() {
+        isConnected = true; // Подключение успешно
+        isConnecting = false; // Процесс подключения завершен
+      });
 
-        channel.stream.listen(
-          (message) {
-            logger.i('Получено сообщение: $message');
-            if (!isConnected) {
-              logger.i('Соединение установлено.');
-              showSnackBar(context, 'Соединение установлено');
-              setState(() {
-                isConnected = true;
-              });
-            }
-
-            final newFrequency = double.tryParse(message) ?? 0.0;
-            setFrequency(newFrequency);
-          },
-          onError: (error) {
-            logger.e('Ошибка соединения: $error');
-            showSnackBar(context, 'Ошибка соединения');
+      channel.stream.listen(
+        (message) {
+          logger.i('Получено сообщение: $message');
+          if (!isConnected) {
+            logger.i('Соединение установлено.');
+            showSnackBar(context, 'Соединение установлено');
             setState(() {
-              isConnected = false; // Ошибка соединения
+              isConnected = true;
             });
-          },
-          onDone: () {
-            logger.i('Соединение закрыто.');
-            showSnackBar(context, 'Соединение закрыто');
-            setState(() {
-              isConnected = false; // Закрытие соединения
-            });
-          },
-          cancelOnError: true,
-        );
-      } catch (e) {
-        logger.e('Ошибка при создании WebSocket: $e');
-        showSnackBar(context, 'Ошибка при подключении: $e');
-        setState(() {
-          isConnected = false; // Ошибка при подключении
-        });
-      }
+          }
+
+          final newFrequency = double.tryParse(message) ?? 0.0;
+          setFrequency(newFrequency);
+        },
+        onError: (error) {
+          logger.e('Ошибка соединения: $error');
+          showSnackBar(context, 'Ошибка соединения');
+          setState(() {
+            isConnected = false; // Ошибка соединения
+          });
+        },
+        onDone: () {
+          logger.i('Соединение закрыто.');
+          showSnackBar(context, 'Соединение закрыто');
+          setState(() {
+            isConnected = false; // Закрытие соединения
+          });
+        },
+        cancelOnError: true,
+      );
     } catch (e) {
       logger.e('Ошибка при подключении: $e');
-      showSnackBar(context, 'Ошибка: $e');
+      showSnackBar(context, 'Ошибка при подключении: $e');
       setState(() {
         isConnected = false; // Ошибка при подключении
+        isConnecting = false; // Завершаем подключение
       });
     }
   }
@@ -587,7 +590,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                     //   size: baseFontSize * 0.7,
                                     // ),
                                     label: Text(
-                                      'Подключиться',
+                                      isConnected
+                                          ? 'Отключиться'
+                                          : 'Подключиться',
                                       style: TextStyle(
                                         fontSize: buttonFontSize,
                                       ),

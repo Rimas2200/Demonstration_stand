@@ -48,6 +48,12 @@ const char index_html[] PROGMEM = R"rawliteral(
 // Счётчик подключенных клиентов
 int clientCount = 0;
 
+// Константа для частоты
+float frequency = 20.0;  // Частота
+
+// Время последней отправки частоты (для отправки каждую секунду)
+unsigned long lastTimeSent = 0;
+
 // Обработчик WebSocket
 void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
@@ -70,7 +76,8 @@ void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
       // Проверка на "SET_FREQ:"
       if (message.startsWith("SET_FREQ:")) {
         String freqValue = message.substring(9);
-        Serial.printf("[INFO] New frequency: %s Hz\n", freqValue.c_str());
+        frequency = freqValue.toFloat();  // Обновление частоты
+        Serial.printf("[INFO] New frequency: %.2f Hz\n", frequency);
 
         // Подтверждение на клиента
         String response = "Frequency set to " + freqValue + " Hz";
@@ -114,4 +121,14 @@ void setup() {
 
 void loop() {
   ws.loop();
+
+  // Отправка частоты на клиента
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastTimeSent >= 500) {
+    lastTimeSent = currentMillis;
+
+    String freqMessage = "Current Frequency: " + String(frequency) + " Hz";
+    ws.broadcastTXT(freqMessage);
+    Serial.printf("[INFO] Sent frequency: %.2f Hz\n", frequency);
+  }
 }

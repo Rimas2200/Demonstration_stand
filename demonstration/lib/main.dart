@@ -104,16 +104,54 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   }
 
   void sendFrequency(BuildContext context) {
+    // Канал WebSocket открыт?
     if (isConnected && channel != null) {
       final message = 'SET_FREQ:$frequency';
-      showSnackbar(context, 'Sending frequency: $frequency Hz');
-      channel.sink.add(message);
+
+      // Логирование перед отправкой
+      logger.i('Attempting to send frequency: $frequency Hz');
+
+      try {
+        // Состояние перед отправкой
+        logger.i(
+          'Channel status: connected? ${channel.closeCode == null ? "Yes" : "No"}',
+        );
+
+        // Snackbar с инфой
+        showSnackbar(context, 'Sending frequency: $frequency Hz');
+
+        // Отправка сообщения
+        channel.sink.add(message);
+
+        // Успешная отправка
+        logger.i('Frequency sent: $message');
+      } catch (e) {
+        // Ошибки отправки
+        logger.e('Error sending frequency: $e');
+        showSnackbar(
+          context,
+          'Error sending frequency: $e',
+          backgroundColor: Colors.red,
+        );
+      }
     } else {
+      // WebSocket не подключен
+      logger.w('No active connection or channel is null!');
       showSnackbar(
         context,
         'No active connection!',
         backgroundColor: Colors.red,
       );
+
+      // Вторая попытка подключиться снова
+      // connectToController();
+    }
+  }
+
+  void reconnectIfNeeded() {
+    if (channel == null || channel.closeCode != null) {
+      logger.w('Reconnecting to WebSocket...');
+      connectToController(context);
     }
   }
 
@@ -123,9 +161,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
     );
   }
 
-  Future<void> connectToController(BuildContext context) async {
+  void connectToController(BuildContext context) async {
     try {
-      // Если соединение уже установлено, закрываем старый сокет
       if (isConnected) {
         logger.i('Закрытие предыдущего соединения...');
         channel.sink.close(status.goingAway);
@@ -134,59 +171,76 @@ class _OilPumpScreenState extends State<OilPumpScreen>
 
       logger.i('Подключение к ws://192.168.4.1:80...');
 
-      // Проверка доступности сервера
       final socket = await Socket.connect(
         '192.168.4.1',
         80,
         timeout: Duration(seconds: 5),
       );
-      socket.destroy(); // Закрываем
-
+      socket.destroy(); // Закрываем соединение сразу после проверки
       logger.i('Сервер доступен, продолжаем подключение.');
 
-      // Инициализация канала
-      channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
+      // Инициализация канала с WebSocket
+      try {
+        channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
+        logger.i('Канал WebSocket успешно подключен.');
 
-      setState(() {
-        isConnected = false;
-      });
+        setState(() {
+          isConnected = true; // Подключение успешно
+        });
 
-      channel.stream.listen(
-        (message) {
-          logger.i('Получено сообщение: $message');
-          if (!isConnected) {
-            logger.i('Соединение установлено.');
-            showSnackBar(context, 'Соединение установлено');
+        channel.stream.listen(
+          (message) {
+            logger.i('Получено сообщение: $message');
+            if (!isConnected) {
+              logger.i('Соединение установлено.');
+              showSnackBar(context, 'Соединение установлено');
+              setState(() {
+                isConnected = true;
+              });
+            }
+
+            final newFrequency = double.tryParse(message) ?? 0.0;
+            setFrequency(newFrequency);
+          },
+          onError: (error) {
+            logger.e('Ошибка соединения: $error');
+            showSnackBar(context, 'Ошибка соединения');
             setState(() {
-              isConnected = true;
+              isConnected = false; // Ошибка соединения
             });
-          }
-
-          final newFrequency = double.tryParse(message) ?? 0.0;
-          setFrequency(newFrequency);
-        },
-        onError: (error) {
-          logger.e('Ошибка соединения: $error');
-          showSnackBar(context, 'Ошибка соединения');
-          setState(() {
-            isConnected = false;
-          });
-        },
-        onDone: () {
-          logger.i('Соединение закрыто.');
-          showSnackBar(context, 'Соединение закрыто');
-          setState(() {
-            isConnected = false;
-          });
-        },
-        cancelOnError: true,
-      );
+          },
+          onDone: () {
+            logger.i('Соединение закрыто.');
+            showSnackBar(context, 'Соединение закрыто');
+            setState(() {
+              isConnected = false; // Закрытие соединения
+            });
+          },
+          cancelOnError: true,
+        );
+      } catch (e) {
+        logger.e('Ошибка при создании WebSocket: $e');
+        showSnackBar(context, 'Ошибка при подключении: $e');
+        setState(() {
+          isConnected = false; // Ошибка при подключении
+        });
+      }
     } catch (e) {
       logger.e('Ошибка при подключении: $e');
       showSnackBar(context, 'Ошибка: $e');
       setState(() {
-        isConnected = false;
+        isConnected = false; // Ошибка при подключении
       });
+    }
+  }
+
+  void sendMessage(String message) {
+    if (isConnected) {
+      logger.i('Отправка сообщения: $message');
+      channel.sink.add(message); // Отправка данных через WebSocket
+    } else {
+      logger.e('Ошибка: Нет активного соединения!');
+      showSnackBar(context, 'Нет активного соединения!');
     }
   }
 

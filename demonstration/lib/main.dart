@@ -53,6 +53,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
     with TickerProviderStateMixin {
   late WebSocketChannel channel;
   bool isConnected = false;
+  bool isConnecting = false;
 
   double frequency = 0.0;
   bool isOn = false;
@@ -69,6 +70,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   void initState() {
     super.initState();
     logger.i('Initial state: $isConnected');
+
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
@@ -78,26 +80,59 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.linear),
     );
 
-    // Подключение к контроллеру
-    connectToController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      connectToController(context);
+    });
   }
 
-  void sendFrequency() {
-    if (isConnected) {
-      final freq = double.tryParse(currentFrequency) ?? 0.0;
-      channel.sink.add('SET_FREQ:$freq');
-      logger.i('Frequency sent: $freq Hz');
+  void showSnackbar(
+    BuildContext context,
+    String message, {
+    Color? backgroundColor,
+  }) {
+    final snackBar = SnackBar(
+      content: Text(message),
+      backgroundColor: backgroundColor ?? Colors.teal,
+      duration: const Duration(seconds: 3),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      margin: const EdgeInsets.all(16),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void sendFrequency(BuildContext context) {
+    if (isConnected && channel != null) {
+      final message = 'SET_FREQ:$frequency';
+      showSnackbar(context, 'Sending frequency: $frequency Hz');
+      channel.sink.add(message);
+    } else {
+      showSnackbar(
+        context,
+        'No active connection!',
+        backgroundColor: Colors.red,
+      );
     }
   }
 
-  void connectToController() {
+  void showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  void connectToController(BuildContext context) {
     try {
+      // Если соединение уже установлено, закрываем старый сокет
       if (isConnected) {
         logger.i('Closing previous connection...');
         channel.sink.close(status.goingAway);
       }
 
       logger.i('Connecting to ws://192.168.4.1:80...');
+
+      // Инициализация канала
       channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
 
       setState(() {
@@ -108,6 +143,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         (message) {
           if (!isConnected) {
             logger.i('Connection established.');
+            showSnackBar(context, 'Соединение установлено');
             setState(() {
               isConnected = true;
             });
@@ -118,12 +154,14 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         },
         onError: (error) {
           logger.e('Connection error: $error');
+          showSnackBar(context, 'Ошибка соединения');
           setState(() {
             isConnected = false;
           });
         },
         onDone: () {
           logger.i('Connection closed.');
+          showSnackBar(context, 'Соединение закрыто');
           setState(() {
             isConnected = false;
           });
@@ -132,6 +170,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       );
     } catch (e) {
       logger.e('Exception during connection: $e');
+      showSnackBar(context, 'Ошибка: $e');
       setState(() {
         isConnected = false;
       });
@@ -390,7 +429,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                   .clamp(20.0, 48.0);
 
                               return ElevatedButton(
-                                onPressed: sendFrequency,
+                                onPressed: () => sendFrequency(context),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.teal,
                                   shape: RoundedRectangleBorder(
@@ -401,7 +440,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                 child: Icon(
                                   LucideIcons.send,
                                   color: Colors.white,
-                                  size: iconSize,
+                                  size: 32,
                                 ),
                               );
                             },
@@ -474,7 +513,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                     ),
                                   ),
                                   ElevatedButton.icon(
-                                    onPressed: connectToController,
+                                    onPressed:
+                                        () => connectToController(context),
                                     // icon: Icon(
                                     //   Icons.link_rounded,
                                     //   size: baseFontSize * 0.7,

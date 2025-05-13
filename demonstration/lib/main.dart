@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -122,15 +123,26 @@ class _OilPumpScreenState extends State<OilPumpScreen>
     );
   }
 
-  void connectToController(BuildContext context) {
+  Future<void> connectToController(BuildContext context) async {
     try {
       // Если соединение уже установлено, закрываем старый сокет
       if (isConnected) {
-        logger.i('Closing previous connection...');
+        logger.i('Закрытие предыдущего соединения...');
         channel.sink.close(status.goingAway);
+        showSnackBar(context, 'Закрытие старого соединения');
       }
 
-      logger.i('Connecting to ws://192.168.4.1:80...');
+      logger.i('Подключение к ws://192.168.4.1:80...');
+
+      // Проверка доступности сервера
+      final socket = await Socket.connect(
+        '192.168.4.1',
+        80,
+        timeout: Duration(seconds: 5),
+      );
+      socket.destroy(); // Закрываем
+
+      logger.i('Сервер доступен, продолжаем подключение.');
 
       // Инициализация канала
       channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
@@ -141,8 +153,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
 
       channel.stream.listen(
         (message) {
+          logger.i('Получено сообщение: $message');
           if (!isConnected) {
-            logger.i('Connection established.');
+            logger.i('Соединение установлено.');
             showSnackBar(context, 'Соединение установлено');
             setState(() {
               isConnected = true;
@@ -153,14 +166,14 @@ class _OilPumpScreenState extends State<OilPumpScreen>
           setFrequency(newFrequency);
         },
         onError: (error) {
-          logger.e('Connection error: $error');
+          logger.e('Ошибка соединения: $error');
           showSnackBar(context, 'Ошибка соединения');
           setState(() {
             isConnected = false;
           });
         },
         onDone: () {
-          logger.i('Connection closed.');
+          logger.i('Соединение закрыто.');
           showSnackBar(context, 'Соединение закрыто');
           setState(() {
             isConnected = false;
@@ -169,7 +182,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         cancelOnError: true,
       );
     } catch (e) {
-      logger.e('Exception during connection: $e');
+      logger.e('Ошибка при подключении: $e');
       showSnackBar(context, 'Ошибка: $e');
       setState(() {
         isConnected = false;

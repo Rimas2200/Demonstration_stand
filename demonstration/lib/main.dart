@@ -84,7 +84,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
 
   void sendFrequency() {
     if (isConnected) {
-      channel.sink.add('SET_FREQ:$frequency');
+      final freq = double.tryParse(currentFrequency) ?? 0.0;
+      channel.sink.add('SET_FREQ:$freq');
+      logger.i('Frequency sent: $freq Hz');
     }
   }
 
@@ -365,6 +367,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                         final freq =
                                             double.tryParse(value) ?? 0.0;
                                         setFrequency(freq);
+                                        currentFrequency =
+                                            value; // Сохранение текущей частоты
                                       },
                                     ),
                                   ),

@@ -10,7 +10,6 @@ import 'package:flutter/services.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
   if (!kIsWeb) {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
@@ -22,7 +21,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,7 +43,6 @@ class MyApp extends StatelessWidget {
 
 class OilPumpScreen extends StatefulWidget {
   const OilPumpScreen({super.key});
-
   @override
   State<OilPumpScreen> createState() => _OilPumpScreenState();
 }
@@ -55,32 +52,26 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   late WebSocketChannel channel;
   bool isConnected = false;
   bool isConnecting = false;
-
-  double frequency = 0.0;
+  double frequency = 0.0; // Для внутреннего использования и анимации
+  String currentFrequency = '0'; // Только для отображения данных с контроллера
+  String _inputFrequency = ''; // Ввод пользователя
   bool isOn = false;
-  String currentFrequency = '0';
-
   var logger = Logger();
-
   late AnimationController _animationController;
   late Animation<double> _animation;
-
   final double baseWidthFactor = 0.5;
 
   @override
   void initState() {
     super.initState();
     logger.i('Initial state: $isConnected');
-
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 100),
     )..repeat(reverse: true);
-
     _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.linear),
     );
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       connectToController(context);
     });
@@ -99,52 +90,37 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       margin: const EdgeInsets.all(16),
     );
-
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   void sendFrequency(BuildContext context) {
-    // Канал WebSocket открыт?
     if (isConnected && channel != null) {
-      final message = 'SET_FREQ:$frequency';
-
-      // Логирование перед отправкой
-      logger.i('Attempting to send frequency: $frequency Hz');
-
-      try {
-        // Состояние перед отправкой
-        logger.i(
-          'Channel status: connected? ${channel.closeCode == null ? "Yes" : "No"}',
+      final input = double.tryParse(_inputFrequency);
+      if (input == null || input <= 0) {
+        showSnackbar(
+          context,
+          'Введите корректную частоту',
+          backgroundColor: Colors.red,
         );
-
-        // Snackbar с инфой
-        showSnackbar(context, 'Sending frequency: $frequency Hz');
-
-        // Отправка сообщения
+        return;
+      }
+      final message = 'SET_FREQ:$input';
+      logger.i('Attempting to send frequency: $input Hz');
+      try {
         channel.sink.add(message);
-
-        // Успешная отправка
         logger.i('Frequency sent: $message');
+        showSnackbar(context, 'Отправлено: $input Гц');
       } catch (e) {
-        // Ошибки отправки
         logger.e('Error sending frequency: $e');
         showSnackbar(
           context,
-          'Error sending frequency: $e',
+          'Ошибка отправки: $e',
           backgroundColor: Colors.red,
         );
       }
     } else {
-      // WebSocket не подключен
       logger.w('No active connection or channel is null!');
-      showSnackbar(
-        context,
-        'No active connection!',
-        backgroundColor: Colors.red,
-      );
-
-      // Вторая попытка подключиться снова
-      // connectToController();
+      showSnackbar(context, 'Нет соединения!', backgroundColor: Colors.red);
     }
   }
 
@@ -162,67 +138,61 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   }
 
   void connectToController(BuildContext context) async {
-    // Проверка на подключение в процессе
     if (isConnecting) {
       logger.i('Подключение уже в процессе...');
       return;
     }
-
     setState(() {
       isConnecting = true;
     });
-
     try {
       if (isConnected) {
         logger.i('Закрытие предыдущего соединения...');
         await channel.sink.close(status.goingAway);
         showSnackBar(context, 'Закрытие старого соединения');
       }
-
       logger.i('Подключение к ws://192.168.4.1:80...');
       final socket = await Socket.connect(
         '192.168.4.1',
         80,
-        timeout: Duration(seconds: 5),
+        timeout: const Duration(seconds: 5),
       );
       socket.destroy(); // Закрываем соединение
       logger.i('Сервер доступен, продолжаем подключение.');
-
-      // Инициализация канала с WebSocket
       channel = WebSocketChannel.connect(Uri.parse('ws://192.168.4.1:80'));
       logger.i('Канал WebSocket успешно подключен.');
-
       setState(() {
-        isConnected = true; // Подключение успешно
-        isConnecting = false; // Процесс подключения завершен
+        isConnected = true;
+        isConnecting = false;
       });
-
       channel.stream.listen(
         (message) {
           logger.i('Получено сообщение: $message');
-          if (!isConnected) {
-            logger.i('Соединение установлено.');
-            showSnackBar(context, 'Соединение установлено');
-            setState(() {
-              isConnected = true;
-            });
+          final match = RegExp(r'(\d+(\.\d+)?)').firstMatch(message);
+          if (match != null && match.group(0) != null) {
+            final String numericValue = match.group(0)!;
+            final double? value = double.tryParse(numericValue);
+            if (value != null) {
+              setFrequency(value); // Обновляется только из данных контроллера
+            } else {
+              logger.e('Не удалось преобразовать в число: $numericValue');
+            }
+          } else {
+            logger.e('Частота не найдена в строке: $message');
           }
-
-          final newFrequency = double.tryParse(message) ?? 0.0;
-          setFrequency(newFrequency);
         },
         onError: (error) {
           logger.e('Ошибка соединения: $error');
           showSnackBar(context, 'Ошибка соединения');
           setState(() {
-            isConnected = false; // Ошибка соединения
+            isConnected = false;
           });
         },
         onDone: () {
           logger.i('Соединение закрыто.');
           showSnackBar(context, 'Соединение закрыто');
           setState(() {
-            isConnected = false; // Закрытие соединения
+            isConnected = false;
           });
         },
         cancelOnError: true,
@@ -231,8 +201,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       logger.e('Ошибка при подключении: $e');
       showSnackBar(context, 'Ошибка при подключении: $e');
       setState(() {
-        isConnected = false; // Ошибка при подключении
-        isConnecting = false; // Завершаем подключение
+        isConnected = false;
+        isConnecting = false;
       });
     }
   }
@@ -240,7 +210,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   void sendMessage(String message) {
     if (isConnected) {
       logger.i('Отправка сообщения: $message');
-      channel.sink.add(message); // Отправка данных через WebSocket
+      channel.sink.add(message);
     } else {
       logger.e('Ошибка: Нет активного соединения!');
       showSnackBar(context, 'Нет активного соединения!');
@@ -262,7 +232,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       if (isOn) {
         final duration =
             (5000 / (1 + math.tan(frequency.clamp(1.0, 100.0) / 20))).toInt();
-
         _animationController.duration = Duration(milliseconds: duration);
         _animationController.repeat(reverse: true);
       } else {
@@ -276,8 +245,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       frequency = value;
       currentFrequency =
           value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
-      // sendFrequency();
-      // Скорость анимации
       if (isOn) {
         final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
         _animationController.duration = Duration(milliseconds: duration);
@@ -300,26 +267,20 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                 children: [
                   Expanded(
                     child: Center(
-                      // Для десктопа
-                      // child: Image.asset('1.png', fit: BoxFit.cover),
-                      // Для мобилок
                       child: Image.asset('assets/1.png', fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Анимированная шкала с изменением ширины
                   SizedBox(
                     height: 60,
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Основная линия
                         Container(
                           width: double.infinity,
                           height: 2,
                           color: Colors.teal,
                         ),
-                        // Анимированная полоса
                         AnimatedBuilder(
                           animation: _animationController,
                           builder: (context, child) {
@@ -330,9 +291,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                 child: child!,
                               );
                             }
-
-                            // ignore: unused_local_variable
-                            final factor = (frequency / 100.0).clamp(0.0, 1.0);
                             final widthFactor =
                                 baseWidthFactor +
                                 (_animation.value * (1.0 - baseWidthFactor));
@@ -379,26 +337,13 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: 30),
-                        // передумал
-                        // Padding(
-                        //   padding: const EdgeInsets.only(right: 12.0),
-                        //   child: Container(
-                        //     width: 32,
-                        //     height: 32,
-                        //     decoration: BoxDecoration(
-                        //       shape: BoxShape.circle,
-                        //       color: isConnected ? Colors.green : Colors.red,
-                        //     ),
-                        //   ),
-                        // ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      // Поле показа частоты
+                      // Отображение частоты (только данные с контроллера)
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
@@ -406,7 +351,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             builder: (context, constraints) {
                               final fontSize = (constraints.maxWidth * 0.35)
                                   .clamp(20.0, 48.0);
-
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey[300],
@@ -434,7 +378,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                         ),
                       ),
                       SizedBox(width: MediaQuery.of(context).size.width * 0.02),
-
                       // Поле ввода
                       Expanded(
                         child: AspectRatio(
@@ -443,7 +386,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             builder: (context, constraints) {
                               final fontSize = (constraints.maxWidth * 0.35)
                                   .clamp(20.0, 48.0);
-
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.white,
@@ -473,11 +415,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                         contentPadding: EdgeInsets.zero,
                                       ),
                                       onChanged: (value) {
-                                        final freq =
-                                            double.tryParse(value) ?? 0.0;
-                                        setFrequency(freq);
-                                        currentFrequency =
-                                            value; // Сохранение текущей частоты
+                                        setState(() {
+                                          _inputFrequency = value;
+                                        });
                                       },
                                     ),
                                   ),
@@ -488,7 +428,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                         ),
                       ),
                       SizedBox(width: MediaQuery.of(context).size.width * 0.02),
-
                       // Кнопка отправки
                       Expanded(
                         child: AspectRatio(
@@ -497,7 +436,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             builder: (context, constraints) {
                               final iconSize = (constraints.maxWidth * 0.35)
                                   .clamp(20.0, 48.0);
-
                               return ElevatedButton(
                                 onPressed: () => sendFrequency(context),
                                 style: ElevatedButton.styleFrom(
@@ -522,11 +460,9 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                   const SizedBox(height: 2),
                   LayoutBuilder(
                     builder: (context, constraints) {
-                      final double baseFontSize =
-                          constraints.maxWidth * 0.035; // ~5% ширины экрана
+                      final double baseFontSize = constraints.maxWidth * 0.035;
                       final double buttonFontSize = constraints.maxWidth * 0.02;
                       final double paddingValue = constraints.maxWidth * 0.02;
-
                       return Card(
                         elevation: 3,
                         shape: RoundedRectangleBorder(
@@ -539,15 +475,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Опционально под мобилки, не уверен, что все войдет
-                              // Text(
-                              //   'Управление питанием и подключением контроллера',
-                              //   style: TextStyle(
-                              //     fontSize: baseFontSize * 1.2,
-                              //     fontWeight: FontWeight.bold,
-                              //   ),
-                              // ),
-                              // const Divider(),
                               SwitchListTile(
                                 title: Text(
                                   'Питание',
@@ -578,17 +505,12 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                             fontSize: baseFontSize,
                                           ),
                                         ),
-                                        SizedBox(width: paddingValue * 0.1),
                                       ],
                                     ),
                                   ),
                                   ElevatedButton.icon(
                                     onPressed:
                                         () => connectToController(context),
-                                    // icon: Icon(
-                                    //   Icons.link_rounded,
-                                    //   size: baseFontSize * 0.7,
-                                    // ),
                                     label: Text(
                                       isConnected
                                           ? 'Отключиться'

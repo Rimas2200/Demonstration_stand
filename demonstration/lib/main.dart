@@ -104,7 +104,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         );
         return;
       }
-      final message = 'SET_FREQ:$input';
+      final message = 'SET_FREQ:$input\n';
       logger.i('Attempting to send frequency: $input Hz');
       try {
         channel.sink.add(message);

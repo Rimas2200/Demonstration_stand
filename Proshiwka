@@ -70,20 +70,28 @@ void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
       break;
       
     case WStype_TEXT: {
-      String message = (char*)payload;
-      Serial.printf("[INFO] Received from client %d: %s\n", num, message.c_str());
+      static String buffer = "";  // Буфер
+      buffer += (char*)payload;
+      
+      int newlineIndex = buffer.indexOf('\n');
+      if (newlineIndex != -1) {
+          String message = buffer.substring(0, newlineIndex);
+          buffer = buffer.substring(newlineIndex + 1);
+          
+          Serial.printf("[INFO] Received from client %d: %s\n", num, message.c_str());
 
-      // Проверка на "SET_FREQ:"
-      if (message.startsWith("SET_FREQ:")) {
-        String freqValue = message.substring(9);
-        frequency = freqValue.toFloat();  // Обновление частоты
-        Serial.printf("[INFO] New frequency: %.2f Hz\n", frequency);
+          // Проверка на "SET_FREQ:"
+          if (message.startsWith("SET_FREQ:")) {
+              String freqValue = message.substring(9);
+              frequency = freqValue.toFloat();  // Обновление частоты
+              Serial.printf("[INFO] New frequency: %.2f Hz\n", frequency);
 
-        // Подтверждение на клиента
-        String response = "Frequency set to " + freqValue + " Hz";
-        ws.sendTXT(num, response);
-      } else {
-        Serial.println("[WARN] Unknown message format");
+              // Подтверждение на клиента
+              String response = "Frequency set to " + freqValue + " Hz\n";
+              ws.sendTXT(num, response);
+          } else {
+              Serial.println("[WARN] Unknown message format");
+          }
       }
       break;
     }

@@ -10,7 +10,7 @@ const char* password = "12345678";
 // WebSocket
 WebSocketsServer ws = WebSocketsServer(80);
 
-// HTTP
+// HTTP сервер
 AsyncWebServer server(81);
 
 // HTML
@@ -23,6 +23,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
     <h1>WebSocket Client</h1>
     <p>Connecting to ESP32...</p>
+    <button onclick="sendPower('ON')">Turn ON</button>
+    <button onclick="sendPower('OFF')">Turn OFF</button>
+    <input type="number" id="freq" placeholder="Frequency in Hz">
+    <button onclick="setFrequency()">Set Frequency</button>
+    <div id="output"></div>
     <script>
         const ws = new WebSocket('ws://192.168.4.1:80');
 
@@ -33,65 +38,102 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         ws.onmessage = function(event) {
             console.log('Received:', event.data);
-            document.body.innerHTML += '<p>Received: ' + event.data + '</p>';
+            document.getElementById("output").innerHTML += '<p>' + event.data + '</p>';
         };
 
         ws.onclose = function() {
             console.log('Connection closed');
-            document.body.innerHTML += '<p>Connection closed</p>';
         };
+
+        function sendPower(state) {
+            const command = 'POWER:' + state;
+            console.log('Sending:', command);
+            ws.send(command);
+        }
+
+        function setFrequency() {
+            const freq = document.getElementById("freq").value;
+            if (!isNaN(freq)) {
+                const command = 'SET_FREQ:' + freq;
+                console.log('Sending:', command);
+                ws.send(command);
+            }
+        }
     </script>
 </body>
 </html>
 )rawliteral";
 
-// Счётчик подключенных клиентов
-int clientCount = 0;
+// Константы
+float frequency = 0.0;   // Частота по умолчанию
+bool powerOn = false;    // Состояние питания
 
-// Константа для частоты
-float frequency = 20.0;  // Частота
-
-// Время последней отправки частоты (для отправки каждую секунду)
+// Время последней отправки данных
 unsigned long lastTimeSent = 0;
 
-// Обработчик WebSocket
+// Счётчик клиентов
+int clientCount = 0;
+
+// Максимальное количество клиентов
+#define WSA_MAX_CLIENTS 8
+String clientBuffers[WSA_MAX_CLIENTS];  // Буферы для каждого клиента
+
+// Обработчик событий WebSocket
 void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
   switch (type) {
-    case WStype_CONNECTED:
-      clientCount++;
-      Serial.printf("[INFO] Client %d connected\n", num);
-      Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
-      break;
-      
+    case WStype_CONNECTED: {
+        clientCount++;
+        Serial.printf("[INFO] Client %d connected\n", num);
+        Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
+
+        String powerState = powerOn ? "ON" : "OFF";
+        ws.sendTXT(num, "POWER:" + powerState + "\n");
+        ws.sendTXT(num, "Current Frequency: " + String(frequency) + " Hz\n");
+        break;
+    }
+
     case WStype_DISCONNECTED:
       clientCount--;
       Serial.printf("[INFO] Client %d disconnected\n", num);
       Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
+      clientBuffers[num] = "";  // Очистить буфер клиента
       break;
-      
-    case WStype_TEXT: {
-      static String buffer = "";  // Буфер
-      buffer += (char*)payload;
-      
-      int newlineIndex = buffer.indexOf('\n');
-      if (newlineIndex != -1) {
-          String message = buffer.substring(0, newlineIndex);
-          buffer = buffer.substring(newlineIndex + 1);
-          
-          Serial.printf("[INFO] Received from client %d: %s\n", num, message.c_str());
 
-          // Проверка на "SET_FREQ:"
+    case WStype_TEXT: {
+      clientBuffers[num] += (char*)payload;
+
+      int newlineIndex = clientBuffers[num].indexOf('\n');
+      while (newlineIndex != -1) {
+          String message = clientBuffers[num].substring(0, newlineIndex);
+          clientBuffers[num] = clientBuffers[num].substring(newlineIndex + 1);
+
+          Serial.printf("[INFO] Received from client %d: '%s'\n", num, message.c_str());
+
           if (message.startsWith("SET_FREQ:")) {
               String freqValue = message.substring(9);
-              frequency = freqValue.toFloat();  // Обновление частоты
+              frequency = freqValue.toFloat();
               Serial.printf("[INFO] New frequency: %.2f Hz\n", frequency);
-
-              // Подтверждение на клиента
-              String response = "Frequency set to " + freqValue + " Hz\n";
-              ws.sendTXT(num, response);
+              ws.sendTXT(num, "Frequency set to " + freqValue + " Hz\n");
+          }
+          else if (message.startsWith("POWER:")) {
+              String powerCommand = message.substring(6);
+              Serial.printf("[DEBUG] Power command received: '%s'\n", powerCommand.c_str());
+              if (powerCommand.equalsIgnoreCase("ON")) {
+                  powerOn = true;
+                  Serial.println("[INFO] Power turned ON");
+                  ws.sendTXT(num, "POWER:ON\n");
+              } else if (powerCommand.equalsIgnoreCase("OFF")) {
+                  powerOn = false;
+                  Serial.println("[INFO] Power turned OFF");
+                  ws.sendTXT(num, "POWER:OFF\n");
+              } else {
+                  ws.sendTXT(num, "Unknown power command\n");
+              }
           } else {
               Serial.println("[WARN] Unknown message format");
           }
+
+          newlineIndex = clientBuffers[num].indexOf('\n');
       }
       break;
     }
@@ -99,7 +141,7 @@ void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
     case WStype_PONG:
       Serial.printf("[INFO] Pong received from client %d\n", num);
       break;
-      
+
     default:
       break;
   }
@@ -114,11 +156,11 @@ void setup() {
   Serial.print("[INFO] IP: ");
   Serial.println(WiFi.softAPIP());
 
-  // Настройка WebSocket
+  // Инициализация WebSocket
   ws.onEvent(onEvent);
   ws.begin();
 
-  // Настройка HTTP
+  // Настройка HTTP сервера
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html);
   });
@@ -130,13 +172,23 @@ void setup() {
 void loop() {
   ws.loop();
 
-  // Отправка частоты на клиента
   unsigned long currentMillis = millis();
+  static unsigned long lastLog = 0;
+
   if (currentMillis - lastTimeSent >= 500) {
     lastTimeSent = currentMillis;
 
     String freqMessage = "Current Frequency: " + String(frequency) + " Hz";
     ws.broadcastTXT(freqMessage);
     Serial.printf("[INFO] Sent frequency: %.2f Hz\n", frequency);
+
+    String powerMessage = "POWER:" + String(powerOn ? "ON" : "OFF");
+    ws.broadcastTXT(powerMessage);
+    Serial.printf("[INFO] Sent power state: %s\n", powerOn ? "ON" : "OFF");
+  }
+
+  if (millis() - lastLog > 1000) {
+    lastLog = millis();
+    Serial.printf("[DEBUG] Current power state: %s\n", powerOn ? "ON" : "OFF");
   }
 }

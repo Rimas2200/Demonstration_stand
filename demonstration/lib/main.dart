@@ -54,7 +54,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   bool isConnecting = false;
   double frequency = 0.0; // Для внутреннего использования и анимации
   String currentFrequency = '0'; // Только для отображения данных с контроллера
-  String _inputFrequency = ''; // Ввод пользователя
+  String _inputFrequency = '0'; // Ввод пользователя
   bool isOn = false;
   var logger = Logger();
   late AnimationController _animationController;
@@ -96,7 +96,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   void sendFrequency(BuildContext context) {
     if (isConnected && channel != null) {
       final input = double.tryParse(_inputFrequency);
-      if (input == null || input <= 0) {
+      if (input == null || input < 0) {
         showSnackbar(
           context,
           'Введите корректную частоту',
@@ -168,12 +168,21 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       channel.stream.listen(
         (message) {
           logger.i('Получено сообщение: $message');
+
+          if (message.startsWith("POWER:")) {
+            final powerState = message.contains("ON") ? "ON" : "OFF";
+            setState(() {
+              isOn = (powerState == "ON");
+            });
+            return;
+          }
+
           final match = RegExp(r'(\d+(\.\d+)?)').firstMatch(message);
           if (match != null && match.group(0) != null) {
             final String numericValue = match.group(0)!;
             final double? value = double.tryParse(numericValue);
             if (value != null) {
-              setFrequency(value); // Обновляется только из данных контроллера
+              setFrequency(value);
             } else {
               logger.e('Не удалось преобразовать в число: $numericValue');
             }
@@ -229,15 +238,14 @@ class _OilPumpScreenState extends State<OilPumpScreen>
   void togglePower() {
     setState(() {
       isOn = !isOn;
-      if (isOn) {
-        final duration =
-            (5000 / (1 + math.tan(frequency.clamp(1.0, 100.0) / 20))).toInt();
-        _animationController.duration = Duration(milliseconds: duration);
-        _animationController.repeat(reverse: true);
-      } else {
-        _animationController.stop();
-      }
     });
+
+    // Отправляем команду на контроллер сразу
+    if (isOn) {
+      sendMessage('\nPOWER:ON\n');
+    } else {
+      sendMessage('\nPOWER:OFF\n');
+    }
   }
 
   void setFrequency(double value) {
@@ -245,10 +253,16 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       frequency = value;
       currentFrequency =
           value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
-      if (isOn) {
-        final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
-        _animationController.duration = Duration(milliseconds: duration);
-        _animationController.repeat(reverse: true);
+
+      if (value == 0.0) {
+        _animationController.stop(); // Полная остановка анимации
+        // isOn = false;
+      } else {
+        if (isOn) {
+          final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
+          _animationController.duration = Duration(milliseconds: duration);
+          _animationController.repeat(reverse: true);
+        }
       }
     });
   }
@@ -340,7 +354,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.01),
                   Row(
                     children: [
                       // Отображение частоты (только данные с контроллера)
@@ -349,8 +363,10 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           aspectRatio: 1,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final fontSize = (constraints.maxWidth * 0.35)
-                                  .clamp(20.0, 48.0);
+                              final fontSize =
+                                  (constraints.maxWidth * 0.35)
+                                      .clamp(20.0, 48.0)
+                                      .toInt();
                               return Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey[300],
@@ -366,7 +382,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                   child: Text(
                                     '$currentFrequency Гц',
                                     style: TextStyle(
-                                      fontSize: fontSize,
+                                      fontSize: fontSize.toDouble(),
                                       fontWeight: FontWeight.bold,
                                     ),
                                     textAlign: TextAlign.center,
@@ -377,65 +393,113 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           ),
                         ),
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width * 0.02),
-                      // Поле ввода
+                      SizedBox(width: MediaQuery.of(context).size.width * 0.03),
+                      // Поле ввода частоты с кнопками + и -
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final fontSize = (constraints.maxWidth * 0.35)
-                                  .clamp(20.0, 48.0);
-                              return Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(40),
-                                  border: Border.all(
-                                    color: Colors.teal,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: fontSize * 0.3,
-                                    ),
-                                    child: TextField(
-                                      keyboardType: TextInputType.number,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      style: TextStyle(
-                                        fontSize: fontSize,
-                                        fontWeight: FontWeight.bold,
+                              final fontSize =
+                                  (constraints.maxWidth * 0.35)
+                                      .clamp(20.0, 48.0)
+                                      .toInt();
+
+                              return Row(
+                                children: [
+                                  // Поле отображения частоты
+                                  Expanded(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color.fromARGB(
+                                          255,
+                                          255,
+                                          255,
+                                          255,
+                                        ),
+                                        borderRadius: BorderRadius.circular(40),
+                                        border: Border.all(
+                                          color: Colors.teal,
+                                          width: 2,
+                                        ),
                                       ),
-                                      decoration: InputDecoration(
-                                        hintText: 'Гц',
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.zero,
+                                      alignment: Alignment.center,
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          '$_inputFrequency',
+                                          style: TextStyle(
+                                            fontSize: fontSize.toDouble(),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _inputFrequency = value;
-                                        });
-                                      },
                                     ),
                                   ),
-                                ),
+                                ],
                               );
                             },
                           ),
                         ),
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width * 0.02),
+                      // блок с кнопками + и -
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.07,
+                        // alignment: Alignment.center,
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: Column(
+                            // crossAxisAlignment: CrossAxisAlignment.center,
+                            // mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    final value =
+                                        int.tryParse(_inputFrequency) ?? 0;
+                                    _inputFrequency =
+                                        (value + 1).clamp(0, 1000).toString();
+                                  });
+                                },
+                                icon: Icon(Icons.expand_less),
+                                iconSize:
+                                    MediaQuery.of(context).size.width * 0.03,
+                                color: Colors.teal,
+                              ),
+                              // SizedBox(
+                              //   height:
+                              //       MediaQuery.of(context).size.width * 0.009,
+                              // ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    final value =
+                                        int.tryParse(_inputFrequency) ?? 0;
+                                    _inputFrequency =
+                                        (value - 1).clamp(0, 1000).toString();
+                                  });
+                                },
+                                icon: Icon(Icons.expand_more),
+                                iconSize:
+                                    MediaQuery.of(context).size.width * 0.03,
+                                color: Colors.teal,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: MediaQuery.of(context).size.width * 0.03),
                       // Кнопка отправки
                       Expanded(
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: LayoutBuilder(
                             builder: (context, constraints) {
-                              final iconSize = (constraints.maxWidth * 0.35)
-                                  .clamp(20.0, 48.0);
+                              final iconSize =
+                                  (constraints.maxWidth * 0.35)
+                                      .clamp(20.0, 48.0)
+                                      .toInt();
                               return ElevatedButton(
                                 onPressed: () => sendFrequency(context),
                                 style: ElevatedButton.styleFrom(
@@ -448,7 +512,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                 child: Icon(
                                   LucideIcons.send,
                                   color: Colors.white,
-                                  size: 32,
+                                  size: iconSize.toDouble(),
                                 ),
                               );
                             },
@@ -457,7 +521,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
+
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.01),
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final double baseFontSize = constraints.maxWidth * 0.035;

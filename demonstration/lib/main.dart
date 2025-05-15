@@ -325,6 +325,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ],
                     ),
                   ),
+                  const SizedBox(height: 31),
                 ],
               ),
             ),
@@ -335,7 +336,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(vertical: 20.0),
                     decoration: BoxDecoration(
                       color: Colors.teal,
                       borderRadius: BorderRadius.circular(10),
@@ -354,7 +355,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ],
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                   Row(
                     children: [
                       // Отображение частоты (только данные с контроллера)
@@ -446,12 +447,16 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       // блок с кнопками + и -
                       Container(
                         width: MediaQuery.of(context).size.width * 0.09,
-                        // alignment: Alignment.center,
                         child: AspectRatio(
-                          aspectRatio: 1,
+                          aspectRatio: 0.5,
                           child: Column(
-                            // crossAxisAlignment: CrossAxisAlignment.center,
-                            // mainAxisAlignment: MainAxisAlignment.center,
+                            // Выравниваем элементы по вертикали
+                            mainAxisAlignment:
+                                MainAxisAlignment
+                                    .start, // или MainAxisAlignment.spaceBetween / MainAxisAlignment.start
+                            // Выравниваем элементы по горизонтали
+                            crossAxisAlignment: CrossAxisAlignment.center,
+
                             children: [
                               IconButton(
                                 onPressed: () {
@@ -460,18 +465,18 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                         int.tryParse(_inputFrequency) ?? 0;
                                     _inputFrequency =
                                         (value + 1).clamp(0, 1000).toString();
-                                        sendFrequency(context);
+                                    sendFrequency(context);
                                   });
                                 },
                                 icon: Icon(Icons.expand_less),
                                 iconSize:
-                                    MediaQuery.of(context).size.width * 0.03,
+                                    MediaQuery.of(context).size.width * 0.06,
                                 color: Colors.teal,
                               ),
-                              // SizedBox(
-                              //   height:
-                              //       MediaQuery.of(context).size.width * 0.009,
-                              // ),
+                              SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.055,
+                              ),
                               IconButton(
                                 onPressed: () {
                                   setState(() {
@@ -484,14 +489,14 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                 },
                                 icon: Icon(Icons.expand_more),
                                 iconSize:
-                                    MediaQuery.of(context).size.width * 0.03,
+                                    MediaQuery.of(context).size.width * 0.06,
                                 color: Colors.teal,
                               ),
                             ],
                           ),
                         ),
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width * 0.03),
+                      // SizedBox(width: MediaQuery.of(context).size.width * 0.0),
                       // Кнопка отправки
                       // Expanded(
                       //   child: AspectRatio(
@@ -524,7 +529,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                     ],
                   ),
 
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.068),
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final double baseFontSize = constraints.maxWidth * 0.035;
@@ -551,7 +556,6 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                               ),
                               const Divider(),
                               SwitchListTile(
-                                 
                                 title: Text(
                                   'Питание',
                                   style: TextStyle(fontSize: baseFontSize),

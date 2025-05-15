@@ -109,7 +109,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       try {
         channel.sink.add(message);
         logger.i('Frequency sent: $message');
-        showSnackbar(context, 'Отправлено: $input Гц');
+        // showSnackbar(context, 'Отправлено: $input Гц');
       } catch (e) {
         logger.e('Error sending frequency: $e');
         showSnackbar(
@@ -259,7 +259,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
         // isOn = false;
       } else {
         if (isOn) {
-          final duration = (20000 / (value.clamp(1.0, 100.0))).toInt();
+          final duration = (1000 / (value.clamp(1.0, 100.0))).toInt();
           _animationController.duration = Duration(milliseconds: duration);
           _animationController.repeat(reverse: true);
         }
@@ -445,7 +445,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ),
                       // блок с кнопками + и -
                       Container(
-                        width: MediaQuery.of(context).size.width * 0.07,
+                        width: MediaQuery.of(context).size.width * 0.09,
                         // alignment: Alignment.center,
                         child: AspectRatio(
                           aspectRatio: 1,
@@ -460,6 +460,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                         int.tryParse(_inputFrequency) ?? 0;
                                     _inputFrequency =
                                         (value + 1).clamp(0, 1000).toString();
+                                        sendFrequency(context);
                                   });
                                 },
                                 icon: Icon(Icons.expand_less),
@@ -479,6 +480,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                                     _inputFrequency =
                                         (value - 1).clamp(0, 1000).toString();
                                   });
+                                  sendFrequency(context);
                                 },
                                 icon: Icon(Icons.expand_more),
                                 iconSize:
@@ -491,34 +493,34 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       ),
                       SizedBox(width: MediaQuery.of(context).size.width * 0.03),
                       // Кнопка отправки
-                      Expanded(
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: LayoutBuilder(
-                            builder: (context, constraints) {
-                              final iconSize =
-                                  (constraints.maxWidth * 0.35)
-                                      .clamp(20.0, 48.0)
-                                      .toInt();
-                              return ElevatedButton(
-                                onPressed: () => sendFrequency(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.teal,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(40),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                child: Icon(
-                                  LucideIcons.send,
-                                  color: Colors.white,
-                                  size: iconSize.toDouble(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
+                      // Expanded(
+                      //   child: AspectRatio(
+                      //     aspectRatio: 1,
+                      //     child: LayoutBuilder(
+                      //       builder: (context, constraints) {
+                      //         final iconSize =
+                      //             (constraints.maxWidth * 0.35)
+                      //                 .clamp(20.0, 48.0)
+                      //                 .toInt();
+                      //         return ElevatedButton(
+                      //           onPressed: () => sendFrequency(context),
+                      //           style: ElevatedButton.styleFrom(
+                      //             backgroundColor: Colors.teal,
+                      //             shape: RoundedRectangleBorder(
+                      //               borderRadius: BorderRadius.circular(40),
+                      //             ),
+                      //             padding: EdgeInsets.zero,
+                      //           ),
+                      //           child: Icon(
+                      //             LucideIcons.send,
+                      //             color: Colors.white,
+                      //             size: iconSize.toDouble(),
+                      //           ),
+                      //         );
+                      //       },
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
 
@@ -540,7 +542,16 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              Text(
+                                'Управление питанием и подключением контроллера',
+                                style: TextStyle(
+                                  fontSize: baseFontSize * 1.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Divider(),
                               SwitchListTile(
+                                 
                                 title: Text(
                                   'Питание',
                                   style: TextStyle(fontSize: baseFontSize),

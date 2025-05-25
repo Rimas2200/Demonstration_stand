@@ -2,6 +2,13 @@
 #include <WiFi.h>
 #include <WebSocketsServer.h>
 #include <ESPAsyncWebServer.h>
+#include "GyverTimer.h"
+
+// Настройка таймера
+GTimer TimerForFreq(US);
+
+// Пины
+#define LOAD_PIN 12 // Пин на нагрузку
 
 // Настройка WiFi
 const char* ssid = "ESP32-Access-Point";
@@ -67,6 +74,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 // Константы
 float frequency = 0.0;   // Частота по умолчанию
 bool powerOn = false;    // Состояние питания
+float SaveFrequency = 0.0; // Предыдущая сохраненная частота
+bool SavePowerOn = false;
 
 // Время последней отправки данных
 unsigned long lastTimeSent = 0;
@@ -167,28 +176,55 @@ void setup() {
 
   server.begin();
   Serial.println("[INFO] HTTP server started on port 81");
+
+  // Настройка пинов
+  pinMode(LOAD_PIN, OUTPUT);
 }
 
 void loop() {
   ws.loop();
 
-  unsigned long currentMillis = millis();
-  static unsigned long lastLog = 0;
+  // unsigned long currentMillis = millis();
+  // static unsigned long lastLog = 0;
 
-  if (currentMillis - lastTimeSent >= 500) {
-    lastTimeSent = currentMillis;
+  // if (currentMillis - lastTimeSent >= 500) {
+  //   lastTimeSent = currentMillis;
+
+  //   String freqMessage = "Current Frequency: " + String(frequency) + " Hz";
+  //   ws.broadcastTXT(freqMessage);
+  //   Serial.printf("[INFO] Sent frequency: %.2f Hz\n", frequency);
+
+  //   String powerMessage = "POWER:" + String(powerOn ? "ON" : "OFF");
+  //   ws.broadcastTXT(powerMessage);
+  //   Serial.printf("[INFO] Sent power state: %s\n", powerOn ? "ON" : "OFF");
+  // }
+
+  // if (millis() - lastLog > 1000) {
+  //   lastLog = millis();
+  //   Serial.printf("[DEBUG] Current power state: %s\n", powerOn ? "ON" : "OFF");
+  // }
+
+  if (frequency != SaveFrequency) {
+    SaveFrequency = frequency;
 
     String freqMessage = "Current Frequency: " + String(frequency) + " Hz";
     ws.broadcastTXT(freqMessage);
     Serial.printf("[INFO] Sent frequency: %.2f Hz\n", frequency);
+
+    TimerForFreq.setInterval(1/(frequency)*1000000);
+  } else if (powerOn != SavePowerOn) {
+    SavePowerOn = powerOn;
 
     String powerMessage = "POWER:" + String(powerOn ? "ON" : "OFF");
     ws.broadcastTXT(powerMessage);
     Serial.printf("[INFO] Sent power state: %s\n", powerOn ? "ON" : "OFF");
   }
 
-  if (millis() - lastLog > 1000) {
-    lastLog = millis();
-    Serial.printf("[DEBUG] Current power state: %s\n", powerOn ? "ON" : "OFF");
+  if (powerOn != false) {
+    if (int(frequency)==0) {
+    digitalWrite(LOAD_PIN, HIGH);
+    } else if (TimerForFreq.isReady()) {
+    digitalWrite(LOAD_PIN, !digitalRead(LOAD_PIN));
+    }
   }
 }

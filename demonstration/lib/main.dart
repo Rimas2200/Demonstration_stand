@@ -295,7 +295,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                         ar: false,
                         autoRotate: true,
                         cameraControls: true,
-                        backgroundColor: const Color.fromARGB(0, 255, 255, 255),
+                        backgroundColor: const Color.fromARGB(0, 0, 0, 0),
                       ),
                     ),
                   ),
@@ -351,26 +351,44 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 20.0),
+                    // padding: const EdgeInsets.symmetric(vertical: 20.0),
                     decoration: BoxDecoration(
-                      color: Colors.teal,
-                      borderRadius: BorderRadius.circular(10),
+                      // color: Colors.teal,
+                      // borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         Expanded(
-                          child: Text(
-                            'ЧелГУ/Нефт.сервис',
-                            style: Theme.of(context).textTheme.titleMedium!
-                                .copyWith(color: Colors.white),
-                            textAlign: TextAlign.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset(
+                                'assets/neft_logo.png',
+                                height: 115,
+                                // color: Colors.white,
+                              ),
+                              const SizedBox(width: 46),
+                              Image.asset(
+                                'assets/chelgu_logo.png',
+                                height: 95,
+                                // color: Colors.white,
+                              ),
+                            ],
                           ),
                         ),
+                        // Expanded(
+                        //   child: Text(
+                        //     'ЧелГУ/Нефт.сервис',
+                        //     style: Theme.of(context).textTheme.titleMedium!
+                        //         .copyWith(color: Colors.white),
+                        //     textAlign: TextAlign.center,
+                        //   ),
+                        // ),
                       ],
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.01),
                   Row(
                     children: [
                       // Отображение частоты (только данные с контроллера)

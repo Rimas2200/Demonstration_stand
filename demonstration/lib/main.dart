@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
+import 'package:model_viewer_plus/model_viewer_plus.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -279,9 +280,23 @@ class _OilPumpScreenState extends State<OilPumpScreen>
               flex: 2,
               child: Column(
                 children: [
+                  // Expanded(
+                  //   child: Center(
+                  //     child: Image.asset('assets/1.png', fit: BoxFit.cover),
+                  //     // child: Model3DViewer(),
+                  //   ),
+                  // ),
                   Expanded(
                     child: Center(
-                      child: Image.asset('assets/1.png', fit: BoxFit.cover),
+                      child: ModelViewer(
+                        // src: 'assets/3d.glb',
+                        src: 'assets/3dd.glb',
+                        alt: "3D модель",
+                        ar: false,
+                        autoRotate: true,
+                        cameraControls: true,
+                        backgroundColor: const Color.fromARGB(0, 255, 255, 255),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

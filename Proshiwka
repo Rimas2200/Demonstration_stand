@@ -106,6 +106,17 @@ void onEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
       Serial.printf("[INFO] Client %d disconnected\n", num);
       Serial.printf("[INFO] Total connected clients: %d\n", clientCount);
       clientBuffers[num] = "";  // Очистить буфер клиента
+
+      if (clientCount == 0) {
+        powerOn = false;
+        frequency = 0.0f;
+        SavePowerOn = false;
+        SaveFrequency = 0.0f;
+
+        digitalWrite(LOAD_PIN, LOW);
+
+        Serial.println("[INFO] Power turned OFF and frequency reset to 0 Hz due to client disconnect");
+      }
       break;
 
     case WStype_TEXT: {
@@ -226,5 +237,7 @@ void loop() {
     } else if (TimerForFreq.isReady()) {
     digitalWrite(LOAD_PIN, !digitalRead(LOAD_PIN));
     }
+  } else if (powerOn==false){
+    digitalWrite(LOAD_PIN, LOW);
   }
 }

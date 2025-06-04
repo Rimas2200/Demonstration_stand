@@ -285,8 +285,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            // image: AssetImage("assets/Artboard23.png"),
-            image: AssetImage("assets/Artboard33x.png"),
+            image: AssetImage("assets/Artboard23.png"),
+            // image: AssetImage("assets/Artboard33x.png"),
             fit: BoxFit.cover,
             // colorFilter: ColorFilter.mode(
             // Colors.black.withOpacity(0.4),
@@ -313,9 +313,12 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       child: Center(
                         child: ModelViewer(
                           // src: 'assets/3d.glb',
-                          src: 'assets/3d22.glb',
+                          src: 'assets/3d2_new.glb',
                           alt: "3D модель",
                           ar: false,
+                          // autoplay: true,
+                          disableZoom: false,
+                          // loading: 'eager',
                           autoRotate: true,
                           cameraControls: true,
                           backgroundColor: const Color.fromARGB(0, 0, 0, 0),
@@ -325,16 +328,15 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                     // Expanded(
                     //   child: Center(
                     //     child: ModelViewer(
-                    //       src: 'assets/3d22.glb', // Убедитесь, что файл существует в assets
+                    //       src: 'assets/3d22.glb',
                     //       alt: "3D модель с анимацией",
                     //       ar: false,
                     //       autoRotate: true, // Автоматическое вращение камеры
                     //       cameraControls: true, // Разрешить пользователю управлять камерой
                     //       backgroundColor: const Color.fromARGB(0, 0, 0, 0),
-                    //       autoplay: true, // Важно! Запуск анимации при загрузке
+                    //       autoplay: true,
                     //       disableZoom: false,
                     //       loading: 'eager',
-                    //       animationName: 'YourAnimationName', // Если нужно — указать конкретное имя анимации
                     //       style: const ModelViewerStyle(),
                     //     ),
                     //   ),

@@ -8,6 +8,7 @@ import 'package:web_socket_channel/status.dart' as status;
 import 'package:logger/logger.dart';
 import 'package:flutter/services.dart';
 import 'package:model_viewer_plus/model_viewer_plus.dart';
+// import 'package:model_viewer_plus/model_viewer.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -284,7 +285,8 @@ class _OilPumpScreenState extends State<OilPumpScreen>
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage("assets/Artboard.png"),
+            // image: AssetImage("assets/Artboard23.png"),
+            image: AssetImage("assets/Artboard33x.png"),
             fit: BoxFit.cover,
             // colorFilter: ColorFilter.mode(
             // Colors.black.withOpacity(0.4),
@@ -311,7 +313,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                       child: Center(
                         child: ModelViewer(
                           // src: 'assets/3d.glb',
-                          src: 'assets/3dd.glb',
+                          src: 'assets/3d22.glb',
                           alt: "3D модель",
                           ar: false,
                           autoRotate: true,
@@ -320,6 +322,23 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                         ),
                       ),
                     ),
+                    // Expanded(
+                    //   child: Center(
+                    //     child: ModelViewer(
+                    //       src: 'assets/3d22.glb', // Убедитесь, что файл существует в assets
+                    //       alt: "3D модель с анимацией",
+                    //       ar: false,
+                    //       autoRotate: true, // Автоматическое вращение камеры
+                    //       cameraControls: true, // Разрешить пользователю управлять камерой
+                    //       backgroundColor: const Color.fromARGB(0, 0, 0, 0),
+                    //       autoplay: true, // Важно! Запуск анимации при загрузке
+                    //       disableZoom: false,
+                    //       loading: 'eager',
+                    //       animationName: 'YourAnimationName', // Если нужно — указать конкретное имя анимации
+                    //       style: const ModelViewerStyle(),
+                    //     ),
+                    //   ),
+                    // );
                     const SizedBox(height: 16),
                     SizedBox(
                       height: 60,

@@ -341,47 +341,47 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                     //     ),
                     //   ),
                     // );
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 60,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 2,
-                            color: Colors.teal,
-                          ),
-                          AnimatedBuilder(
-                            animation: _animationController,
-                            builder: (context, child) {
-                              if (!isOn) {
-                                return FractionallySizedBox(
-                                  alignment: Alignment.centerLeft,
-                                  widthFactor: 0.0,
-                                  child: child!,
-                                );
-                              }
-                              final widthFactor =
-                                  baseWidthFactor +
-                                  (_animation.value * (1.0 - baseWidthFactor));
-                              return FractionallySizedBox(
-                                alignment: Alignment.centerLeft,
-                                widthFactor: widthFactor,
-                                child: child,
-                              );
-                            },
-                            child: Container(
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 74, 74, 74),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // const SizedBox(height: 16),
+                    // SizedBox(
+                    //   height: 60,
+                    //   child: Stack(
+                    //     alignment: Alignment.center,
+                    //     children: [
+                    //       Container(
+                    //         width: double.infinity,
+                    //         height: 2,
+                    //         color: Colors.teal,
+                    //       ),
+                    //       AnimatedBuilder(
+                    //         animation: _animationController,
+                    //         builder: (context, child) {
+                    //           if (!isOn) {
+                    //             return FractionallySizedBox(
+                    //               alignment: Alignment.centerLeft,
+                    //               widthFactor: 0.0,
+                    //               child: child!,
+                    //             );
+                    //           }
+                    //           final widthFactor =
+                    //               baseWidthFactor +
+                    //               (_animation.value * (1.0 - baseWidthFactor));
+                    //           return FractionallySizedBox(
+                    //             alignment: Alignment.centerLeft,
+                    //             widthFactor: widthFactor,
+                    //             child: child,
+                    //           );
+                    //         },
+                    //         child: Container(
+                    //           height: 60,
+                    //           decoration: BoxDecoration(
+                    //             color: const Color.fromARGB(255, 74, 74, 74),
+                    //             borderRadius: BorderRadius.circular(10),
+                    //           ),
+                    //         ),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                     const SizedBox(height: 31),
                   ],
                 ),
@@ -392,45 +392,45 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      // padding: const EdgeInsets.symmetric(vertical: 20.0),
-                      decoration: BoxDecoration(
-                        // color: Colors.teal,
-                        // borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          Expanded(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  'assets/neft_logo.png',
-                                  height: 115,
-                                  // color: Colors.white,
-                                ),
-                                const SizedBox(width: 46),
-                                Image.asset(
-                                  'assets/chelgu_logo.png',
-                                  height: 95,
-                                  // color: Colors.white,
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Expanded(
-                          //   child: Text(
-                          //     'ЧелГУ/Нефт.сервис',
-                          //     style: Theme.of(context).textTheme.titleMedium!
-                          //         .copyWith(color: Colors.white),
-                          //     textAlign: TextAlign.center,
-                          //   ),
-                          // ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                    // Container(
+                    //   // padding: const EdgeInsets.symmetric(vertical: 20.0),
+                    //   decoration: BoxDecoration(
+                    //     // color: Colors.teal,
+                    //     // borderRadius: BorderRadius.circular(10),
+                    //   ),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    //     children: [
+                    //       Expanded(
+                    //         child: Row(
+                    //           mainAxisAlignment: MainAxisAlignment.center,
+                    //           children: [
+                    //             Image.asset(
+                    //               'assets/neft_logo.png',
+                    //               height: 115,
+                    //               // color: Colors.white,
+                    //             ),
+                    //             const SizedBox(width: 46),
+                    //             Image.asset(
+                    //               'assets/chelgu_logo.png',
+                    //               height: 95,
+                    //               // color: Colors.white,
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //       // Expanded(
+                    //       //   child: Text(
+                    //       //     'ЧелГУ/Нефт.сервис',
+                    //       //     style: Theme.of(context).textTheme.titleMedium!
+                    //       //         .copyWith(color: Colors.white),
+                    //       //     textAlign: TextAlign.center,
+                    //       //   ),
+                    //       // ),
+                    //     ],
+                    //   ),
+                    // ),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                     Row(
                       children: [
                         // Отображение частоты (только данные с контроллера)
@@ -470,7 +470,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                           ),
                         ),
                         SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.03,
+                          width: MediaQuery.of(context).size.width * 0.01,
                         ),
                         // Поле ввода частоты с кнопками + и -
                         Expanded(
@@ -610,7 +610,7 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                     ),
 
                     SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.068,
+                      height: MediaQuery.of(context).size.height * 0.018,
                     ),
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -631,14 +631,14 @@ class _OilPumpScreenState extends State<OilPumpScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Управление питанием и подключением контроллера',
-                                  style: TextStyle(
-                                    fontSize: baseFontSize * 1.0,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Divider(),
+                                // Text(
+                                //   'Управление питанием и подключением контроллера',
+                                //   style: TextStyle(
+                                //     fontSize: baseFontSize * 1.0,
+                                //     fontWeight: FontWeight.bold,
+                                //   ),
+                                // ),
+                                // const Divider(),
                                 SwitchListTile(
                                   title: Text(
                                     'Питание',
